@@ -51,7 +51,9 @@ pub async fn build_with_cert(
     )
     .await?;
 
-    let admin_server = admin::Service::new(
+    let admin_addr_v4 = config.admin_addr_v4.clone();
+    let admin_server_v4 = admin::Service::new(
+        admin_addr_v4,
         config.clone(),
         workload_manager.workloads(),
         shutdown.trigger(),
@@ -59,7 +61,20 @@ pub async fn build_with_cert(
         cert_manager.clone(),
     )
     .await
-    .context("admin server starts")?;
+    .context("admin server starts in ipv4 address")?;
+
+    let admin_addr_v6 = config.admin_addr_v6.clone();
+    let admin_server_v6 = admin::Service::new(
+        admin_addr_v6,
+        config.clone(),
+        workload_manager.workloads(),
+        shutdown.trigger(),
+        drain_rx.clone(),
+        cert_manager.clone(),
+    )
+    .await?;
+    // .context("admin server starts in ipv6 address")?;
+
     let stats_server = stats::Service::new(config.clone(), registry, drain_rx.clone())
         .await
         .context("stats server starts")?;
@@ -67,7 +82,8 @@ pub async fn build_with_cert(
         .await
         .context("readiness server starts")?;
     let readiness_address = readiness_server.address();
-    let admin_address = admin_server.address();
+    // use the same ip family as others for admin server
+    let admin_address = admin_server_v4.address();
     let stats_address = stats_server.address();
 
     let proxy = proxy::Proxy::new(
@@ -81,7 +97,8 @@ pub async fn build_with_cert(
     drop(proxy_task);
 
     // spawn all tasks that should run in the main thread
-    admin_server.spawn();
+    admin_server_v4.spawn();
+    admin_server_v6.spawn();
     stats_server.spawn();
     tokio::spawn(workload_manager.run());
 

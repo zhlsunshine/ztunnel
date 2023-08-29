@@ -85,15 +85,17 @@ pub struct CertsDump {
 
 impl Service {
     pub async fn new(
+        admin_addr: SocketAddr,
         config: Config,
         workload_info: WorkloadInformation,
         shutdown_trigger: signal::ShutdownTrigger,
         drain_rx: Watch,
         cert_manager: Arc<SecretManager>,
     ) -> anyhow::Result<Self> {
+        let server_name = format!("{}-{}", "admin", admin_addr.clone());
         Server::<State>::bind(
-            "admin",
-            config.admin_addr,
+            server_name.as_str(),
+            admin_addr,
             drain_rx,
             State {
                 config,

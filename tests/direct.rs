@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -48,7 +48,7 @@ async fn test_shutdown_lifecycle() {
 }
 
 // Check that port conflicts on any address results in the app failing instead of silently failing
-async fn test_bind_conflict<F: FnOnce(&mut ztunnel::config::Config) -> &mut SocketAddr>(f: F) {
+async fn test_bind_conflict_v4<F: FnOnce(&mut ztunnel::config::Config) -> &mut SocketAddr>(f: F) {
     helpers::initialize_telemetry();
     let l = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let mut cfg = test_config();
@@ -58,29 +58,47 @@ async fn test_bind_conflict<F: FnOnce(&mut ztunnel::config::Config) -> &mut Sock
     assert!(ztunnel::app::build(cfg).await.is_err());
 }
 
+// Check that port conflicts on any address results in the app failing instead of silently failing
+async fn test_bind_conflict_v6<F: FnOnce(&mut ztunnel::config::Config) -> &mut SocketAddr>(f: F) {
+    helpers::initialize_telemetry();
+    let ipv6_addr = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 0);
+    let l = TcpListener::bind(ipv6_addr).await.unwrap();
+    let mut cfg = test_config();
+    let sa = f(&mut cfg);
+    *sa = l.local_addr().unwrap();
+
+    assert!(ztunnel::app::build(cfg).await.is_err());
+}
+
+
 #[tokio::test]
 async fn test_conflicting_bind_error_inbound() {
-    test_bind_conflict(|c| &mut c.inbound_addr).await;
+    test_bind_conflict_v4(|c| &mut c.inbound_addr).await;
 }
 
 #[tokio::test]
 async fn test_conflicting_bind_error_inbound_plaintext() {
-    test_bind_conflict(|c| &mut c.inbound_plaintext_addr).await;
+    test_bind_conflict_v4(|c| &mut c.inbound_plaintext_addr).await;
 }
 
 #[tokio::test]
 async fn test_conflicting_bind_error_outbound() {
-    test_bind_conflict(|c| &mut c.outbound_addr).await;
+    test_bind_conflict_v4(|c| &mut c.outbound_addr).await;
 }
 
 #[tokio::test]
 async fn test_conflicting_bind_error_socks5() {
-    test_bind_conflict(|c| &mut c.socks5_addr).await;
+    test_bind_conflict_v4(|c| &mut c.socks5_addr).await;
 }
 
 #[tokio::test]
-async fn test_conflicting_bind_error_admin() {
-    test_bind_conflict(|c| &mut c.admin_addr).await;
+async fn test_conflicting_bind_error_admin_v4() {
+    test_bind_conflict_v4(|c| &mut c.admin_addr_v4).await;
+}
+
+#[tokio::test]
+async fn test_conflicting_bind_error_admin_v6() {
+    test_bind_conflict_v6(|c| &mut c.admin_addr_v6).await;
 }
 
 #[tokio::test]

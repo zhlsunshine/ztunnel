@@ -181,6 +181,8 @@ pub struct Server<S> {
 
 impl<S> Server<S> {
     pub async fn bind(name: &str, addr: SocketAddr, drain_rx: Watch, s: S) -> anyhow::Result<Self> {
+        let addr_str = addr.to_string();
+        println!("Socket Address: {addr_str}");
         let bind = TcpListener::bind(&addr).await?;
         Ok(Server {
             name: name.to_string(),

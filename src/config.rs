@@ -97,7 +97,8 @@ pub struct Config {
     pub frame_size: u32,
 
     pub socks5_addr: SocketAddr,
-    pub admin_addr: SocketAddr,
+    pub admin_addr_v4: SocketAddr,
+    pub admin_addr_v6: SocketAddr,
     pub stats_addr: SocketAddr,
     pub readiness_addr: SocketAddr,
     pub inbound_addr: SocketAddr,
@@ -259,8 +260,12 @@ pub fn construct_config(pc: ProxyConfig) -> Result<Config, Error> {
 
         // admin API should only be accessible over localhost
         // todo: bind to both v4 localhost and v6
-        admin_addr: SocketAddr::new(
+        admin_addr_v4: SocketAddr::new(
             IpAddr::V4(Ipv4Addr::LOCALHOST),
+            pc.proxy_admin_port.unwrap_or(DEFAULT_ADMIN_PORT),
+        ),
+        admin_addr_v6: SocketAddr::new(
+            IpAddr::V6(Ipv6Addr::LOCALHOST),
             pc.proxy_admin_port.unwrap_or(DEFAULT_ADMIN_PORT),
         ),
         stats_addr: SocketAddr::new(
@@ -437,7 +442,8 @@ pub mod tests {
         let pc = construct_proxy_config(mesh_config_path, None).unwrap();
         let cfg = construct_config(pc).unwrap();
         assert_eq!(cfg.stats_addr.port(), 15888);
-        assert_eq!(cfg.admin_addr.port(), 15099);
+        assert_eq!(cfg.admin_addr_v4.port(), 15099);
+        assert_eq!(cfg.admin_addr_v6.port(), 15099);
         // TODO remove prefix
         assert_eq!(cfg.proxy_metadata["FOO"], "foo");
 
@@ -477,7 +483,8 @@ pub mod tests {
         env::remove_var("ISTIO_META_INCLUDE_THIS");
         env::remove_var("NOT_INCLUDE");
         assert_eq!(cfg.stats_addr.port(), 15888);
-        assert_eq!(cfg.admin_addr.port(), 15999);
+        assert_eq!(cfg.admin_addr_v4.port(), 15999);
+        assert_eq!(cfg.admin_addr_v6.port(), 15999);
         assert_eq!(cfg.proxy_metadata["FOO"], "foo");
         assert_eq!(cfg.proxy_metadata["BAR"], "bar");
         assert_eq!(cfg.proxy_metadata["FOOBAR"], "foobar-overwritten");

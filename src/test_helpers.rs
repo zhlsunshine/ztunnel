@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::fmt::Debug;
 use std::future::Future;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::ops::Add;
 use std::time::{Duration, SystemTime};
 
@@ -64,7 +64,8 @@ pub fn test_config_with_port_xds_addr_and_root_cert(
         // inbound_addr cannot do localhost since we abuse that its listening on all of 127.0.0.0/8 range.
         inbound_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0),
         socks5_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
-        admin_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
+        admin_addr_v4: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
+        admin_addr_v6: SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 0),
         readiness_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
         stats_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
         outbound_addr: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0),
